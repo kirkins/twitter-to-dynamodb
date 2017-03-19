@@ -1,3 +1,6 @@
+//NOTE checkout Object assign function
+// https://developer.mozilla.org/en/docs/Web/JavaScript/Reference/Global_Objects/Object/assign
+
 // See config file for values needed on setup
 const config = require('./config/config');
 var lastReplied = 843197305843077100;
@@ -38,15 +41,8 @@ function tweetAnalysis() {
     if (error) {
       console.log('Bot could not find latest tweet, : ' + error);
     } else {
-      //console.log(data.statuses);
       for (var i = 0, len = data.statuses.length; i < len; i++) {
-        var t = {};t.tweet = {};t.text = {};t.language = {};t.favorites = {};t.retweets = {};
-        t.tweet.S = data.statuses[i].id_str;
-        t.text.S = data.statuses[i].text;
-        t.language.S = data.statuses[i].lang;
-	t.favorites.N = String(data.statuses[i].favorite_count);
-	t.retweets.N = String(data.statuses[i].retweet_count);
-	objectToDynamo(data.statuses[i]);
+	console.log(objectToDynamo(data.statuses[i]));
         //console.log(JSON.stringify(data.statuses[i]));
         //dynamodb.putItem({TableName: 'twitter', Item: t}, function(err, data){
         //  if (err) {
@@ -83,38 +79,28 @@ function tweetAnalysis() {
          eval("dynoObj."+property+".BOOL='"+obj[property]+"'");
 	 break;
        case 'object':
-	 if(Array.isArray(obj[property]) && obj[property] != null){
-	   eval("dynoObj."+property+".M="+[1,2,3]);
-	   console.log(arrayToDynamo(obj[property]))
-	   console.log(typeof arrayToDynamo(obj[property]));
-	   //eval("dynoObj."+property+".M="+arrayToDynamo(obj[property]));
-	 }
-	 else objectToDynamo(obj[property]);
+	 if(Array.isArray(obj[property]) && obj[property] != null && obj[property].length!=0) eval("dynoObj."+property+".L="+arrayToDynamo(obj[property]));
+	 else eval("dynoObj."+property+".M="+objectToDynamo(obj[property]));
 	 break;
      }
-     // propertyName is what you want
-     // you can get the value like this: myObject[propertyName]
     }
-    //console.log(JSON.stringify(dynoObj));
+    console.log(dynoObj);
     return dynoObj;
   }
 
   function arrayToDynamo(arr) {
     var dynoArr = [];
-    //console.log("arr is " + arr);
     for(var i = 0; i < arr.length; i++) {
-     switch(typeof arr[i]) {
-       case 'object':
-	 if(Array.isArray(arr[i]) && arr[i] != null) dynoArr[i] = arrayToDynamo(arr[i]);
-	 else dynoArr[i] = objectToDynamo(arr[i]);
-	 break;
-       default:
-         dynoArr[i] = arr[i];
-     }
-     // propertyName is what you want
-     // you can get the value like this: myObject[propertyName]
+      switch(typeof arr[i]) {
+        case 'object':
+          if(Array.isArray(arr[i]) && arr[i] != null && arr[i].length!=0) dynoArr[i] = arrayToDynamo(arr[i]);
+          else dynoArr[i] = objectToDynamo(arr[i]);
+          break;
+        default:
+          dynoArr[i] = arr[i];
+      }
     }
-    //console.log(JSON.stringify(dynoArr));
+    console.log(dynoObj);
     return dynoArr;
   }
 
