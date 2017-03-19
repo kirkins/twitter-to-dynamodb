@@ -25,11 +25,10 @@ var Bot = new Twit({
 
 function tweetAnalysis() {
 
-  console.log("starting anal");
 
   var query = {
     q: searchTerm,
-    count: 1,
+    count: 100,
     result_type: "recent",
     since_id: lastReplied
   }
@@ -47,23 +46,21 @@ function tweetAnalysis() {
         t.language.S = data.statuses[i].lang;
 	t.favorites.N = String(data.statuses[i].favorite_count);
 	t.retweets.N = String(data.statuses[i].retweet_count);
-        console.log(JSON.stringify(data.statuses[i]));
-        dynamodb.putItem({TableName: 'twitter', Item: t}, function(err, data){
-          if (err) {
-            console.log(err); // an error occurred
-          } else {
-            console.log(data); // successful response
-          }
-        });
+	//console.log(data.statuses[i].text + " " + analyzeTweet(data.statuses[i].text));
+	if(analyzeTweet(data.statuses[i].text)<-3) console.log(data.statuses[i].text);
+        //dynamodb.putItem({TableName: 'twitter', Item: t}, function(err, data){
+        //  if (err) {
+        //    console.log(err); // an error occurred
+        //  } else {
+        //    console.log(data); // successful response
+        //  }
+        //});
       }
     }
   }
 
   function analyzeTweet(tweet) {
-    var tweetId = tweet.id_str;
-    var username = tweet.screen_name;
-    var tweetText = tweet.text;
-    var r1 = sentiment(tweetText);
+    var r1 = sentiment(tweet);
     var roundCompare = Math.round(r1.comparative * 10);
     return roundCompare;
   }
@@ -71,5 +68,6 @@ function tweetAnalysis() {
 }
 
 var timer = setInterval(tweetAnalysis, config.TWEET_FREQUENCY * 60 * 60 * 10);
+tweetAnalysis();
 console.log("program started analyzing 100 tweets every " + config.TWEET_FREQUENCY +" minutes" );
 console.log("Sentiment data will be shown as an array below");
