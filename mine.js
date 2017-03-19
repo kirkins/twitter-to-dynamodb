@@ -25,8 +25,6 @@ var Bot = new Twit({
 
 function tweetAnalysis() {
 
-  console.log("starting anal");
-
   var query = {
     q: searchTerm,
     count: 1,
@@ -40,6 +38,7 @@ function tweetAnalysis() {
     if (error) {
       console.log('Bot could not find latest tweet, : ' + error);
     } else {
+      //console.log(data.statuses);
       for (var i = 0, len = data.statuses.length; i < len; i++) {
         var t = {};t.tweet = {};t.text = {};t.language = {};t.favorites = {};t.retweets = {};
         t.tweet.S = data.statuses[i].id_str;
@@ -47,14 +46,15 @@ function tweetAnalysis() {
         t.language.S = data.statuses[i].lang;
 	t.favorites.N = String(data.statuses[i].favorite_count);
 	t.retweets.N = String(data.statuses[i].retweet_count);
-        console.log(JSON.stringify(data.statuses[i]));
-        dynamodb.putItem({TableName: 'twitter', Item: t}, function(err, data){
-          if (err) {
-            console.log(err); // an error occurred
-          } else {
-            console.log(data); // successful response
-          }
-        });
+	objectToDynamo(data.statuses[i]);
+        //console.log(JSON.stringify(data.statuses[i]));
+        //dynamodb.putItem({TableName: 'twitter', Item: t}, function(err, data){
+        //  if (err) {
+        //    console.log(err); // an error occurred
+        //  } else {
+        //    console.log(data); // successful response
+        //  }
+        //});
       }
     }
   }
@@ -68,8 +68,59 @@ function tweetAnalysis() {
     return roundCompare;
   }
 
+  function objectToDynamo(obj) {
+    var dynoObj = {};
+    for(var property in obj) {
+     eval("dynoObj."+property+"={}");
+     switch(typeof obj[property]) {
+       case 'string': 
+         eval("dynoObj."+property+".S='"+escape(obj[property])+"'");
+	 break;
+       case 'number': 
+         eval("dynoObj."+property+".N='"+obj[property]+"'");
+	 break;
+       case 'boolean': 
+         eval("dynoObj."+property+".BOOL='"+obj[property]+"'");
+	 break;
+       case 'object':
+	 if(Array.isArray(obj[property]) && obj[property] != null){
+	   eval("dynoObj."+property+".M="+[1,2,3]);
+	   console.log(arrayToDynamo(obj[property]))
+	   console.log(typeof arrayToDynamo(obj[property]));
+	   //eval("dynoObj."+property+".M="+arrayToDynamo(obj[property]));
+	 }
+	 else objectToDynamo(obj[property]);
+	 break;
+     }
+     // propertyName is what you want
+     // you can get the value like this: myObject[propertyName]
+    }
+    //console.log(JSON.stringify(dynoObj));
+    return dynoObj;
+  }
+
+  function arrayToDynamo(arr) {
+    var dynoArr = [];
+    //console.log("arr is " + arr);
+    for(var i = 0; i < arr.length; i++) {
+     switch(typeof arr[i]) {
+       case 'object':
+	 if(Array.isArray(arr[i]) && arr[i] != null) dynoArr[i] = arrayToDynamo(arr[i]);
+	 else dynoArr[i] = objectToDynamo(arr[i]);
+	 break;
+       default:
+         dynoArr[i] = arr[i];
+     }
+     // propertyName is what you want
+     // you can get the value like this: myObject[propertyName]
+    }
+    //console.log(JSON.stringify(dynoArr));
+    return dynoArr;
+  }
+
 }
 
 var timer = setInterval(tweetAnalysis, config.TWEET_FREQUENCY * 60 * 60 * 10);
+tweetAnalysis();
 console.log("program started analyzing 100 tweets every " + config.TWEET_FREQUENCY +" minutes" );
 console.log("Sentiment data will be shown as an array below");
